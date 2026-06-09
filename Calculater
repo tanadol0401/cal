@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #181b1f; font-family: sans-serif; padding: 16px; color: #d8d9da; }
+    h3 { color: #ff6600; margin-bottom: 12px; font-size: 15px; }
+    .section { background: #222426; border: 1px solid #333; border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+    input[type="text"] { width: 100%; padding: 8px; background: #2c2f35; border: 1px solid #444; color: white; border-radius: 4px; }
+    .display { background: #111; border-radius: 10px; padding: 14px; margin-bottom: 12px; text-align: right; }
+    .display .expr { color: #666; font-size: 12px; min-height: 16px; margin-bottom: 4px; }
+    .display .result { color: white; font-size: 28px; font-weight: bold; word-break: break-all; }
+    .buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .btn { padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: opacity 0.1s; }
+    .btn:active { opacity: 0.6; }
+    .btn-num   { background: #2c2f35; color: white; }
+    .btn-op    { background: #333a44; color: #f5a623; }
+    .btn-eq    { background: #ff6600; color: white; font-size: 13px; }
+    .btn-clear { background: #c0392b; color: white; }
+    .btn-func  { background: #1e6fbf; color: white; }
+    .btn-zero  { grid-column: span 2; }
+    .result-box { background: #111; border: 1px solid #444; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    .result-box .label { color: #aaa; font-size: 12px; }
+    .result-box .value { color: #ff6600; font-size: 22px; font-weight: bold; }
+    .btn-send { width: 100%; padding: 11px; background: #1a9e4a; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .btn-send:active { opacity: 0.7; }
+    #send-status { margin-top: 8px; font-size: 12px; min-height: 18px; text-align: center; }
+    .key-row { display: flex; gap: 8px; align-items: center; }
+    .key-row input { flex: 1; }
+    .btn-savekey { padding: 9px 12px; background: #1e6fbf; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+    #key-status { font-size: 11px; color: #f5a623; margin-top: 4px; min-height: 14px; }
+  </style>
+</head>
+<body>
+
+  <!-- API Key -->
+  <div class="section">
+    <h3>🔑 Write API Key</h3>
+    <div class="key-row">
+      <input type="text" id="apikey" placeholder="ใส่ Write API Key">
+      <button class="btn-savekey" onclick="saveKey()">💾 บันทึก</button>
+    </div>
+    <div id="key-status"></div>
+  </div>
+
+  <!-- เครื่องคิดเลข -->
+  <div class="section">
+    <h3>🧮 เครื่องคิดเลข</h3>
+    <div class="display">
+      <div class="expr" id="expr"></div>
+      <div class="result" id="result">0</div>
+    </div>
+    <div class="buttons">
+      <button class="btn btn-clear" onclick="clearAll()">C</button>
+      <button class="btn btn-func"  onclick="toggleSign()">+/-</button>
+      <button class="btn btn-func"  onclick="percent()">%</button>
+      <button class="btn btn-op"    onclick="inputOp('/')">÷</button>
+
+      <button class="btn btn-num" onclick="inputNum('7')">7</button>
+      <button class="btn btn-num" onclick="inputNum('8')">8</button>
+      <button class="btn btn-num" onclick="inputNum('9')">9</button>
+      <button class="btn btn-op"  onclick="inputOp('*')">×</button>
+
+      <button class="btn btn-num" onclick="inputNum('4')">4</button>
+      <button class="btn btn-num" onclick="inputNum('5')">5</button>
+      <button class="btn btn-num" onclick="inputNum('6')">6</button>
+      <button class="btn btn-op"  onclick="inputOp('-')">−</button>
+
+      <button class="btn btn-num" onclick="inputNum('1')">1</button>
+      <button class="btn btn-num" onclick="inputNum('2')">2</button>
+      <button class="btn btn-num" onclick="inputNum('3')">3</button>
+      <button class="btn btn-op"  onclick="inputOp('+')">+</button>
+
+      <button class="btn btn-num btn-zero" onclick="inputNum('0')">0</button>
+      <button class="btn btn-num" onclick="inputDot()">.</button>
+      <button class="btn btn-eq"  onclick="calculate()">= บันทึก</button>
+    </div>
+  </div>
+
+  <!-- ผลลัพธ์ -->
+  <div class="section">
+    <h3>📋 ผลลัพธ์ → Field 4</h3>
+    <div class="result-box">
+      <div>
+        <div class="label">ค่าที่จะส่งไป field4</div>
+        <div class="value" id="field4-display">—</div>
+      </div>
+      <div style="color:#555; font-size:11px;">ThingSpeak<br>field4</div>
+    </div>
+    <button class="btn-send" onclick="sendToThingSpeak()">📤 ส่งค่านี้ไป ThingSpeak</button>
+    <div id="send-status"></div>
+  </div>
+
+<script>
+  const STORAGE_KEY = "thingspeak_write_key";
+  let current = "0", expr = "", operator = null, prev = null, justCalc = false;
+  let savedResult = null;
+
+  window.onload = function() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      document.getElementById("apikey").value = saved;
+      document.getElementById("key-status").innerText = "✅ ใช้ key ที่บันทึกไว้";
+    }
+  };
+
+  function saveKey() {
+    const key = document.getElementById("apikey").value.trim();
+    if (!key) { document.getElementById("key-status").innerText = "❌ กรุณาใส่ key"; return; }
+    localStorage.setItem(STORAGE_KEY, key);
+    document.getElementById("key-status").innerText = "✅ บันทึก Key แล้ว";
+  }
+
+  function updateDisplay() {
+    document.getElementById("result").innerText = current;
+    document.getElementById("expr").innerText = expr;
+  }
+
+  function inputNum(n) {
+    if (justCalc) { current = n; expr = ""; justCalc = false; }
+    else current = current === "0" ? n : current + n;
+    updateDisplay();
+  }
+
+  function inputDot() {
+    if (justCalc) { current = "0."; justCalc = false; }
+    else if (!current.includes(".")) current += ".";
+    updateDisplay();
+  }
+
+  function inputOp(op) {
+    const lbl = { '+':'+', '-':'−', '*':'×', '/':'÷' };
+    if (prev !== null && !justCalc) calculate(true);
+    prev = parseFloat(current);
+    operator = op;
+    expr = current + " " + lbl[op];
+    justCalc = false;
+    current = "0";
+    updateDisplay();
+  }
+
+  function calculate(chain = false) {
+    if (operator === null || prev === null) {
+      saveResult(parseFloat(current));
+      return;
+    }
+    const curr = parseFloat(current);
+    let res;
+    switch (operator) {
+      case '+': res = prev + curr; break;
+      case '-': res = prev - curr; break;
+      case '*': res = prev * curr; break;
+      case '/': res = curr === 0 ? "Error" : prev / curr; break;
+    }
+    const lbl = { '+':'+', '-':'−', '*':'×', '/':'÷' };
+    if (!chain) expr = prev + " " + lbl[operator] + " " + curr + " =";
+    current = res === "Error" ? "Error" : String(parseFloat(res.toFixed(10)));
+    if (!chain) { operator = null; prev = null; }
+    else prev = parseFloat(current);
+    justCalc = true;
+    updateDisplay();
+    if (!chain && current !== "Error") saveResult(parseFloat(current));
+  }
+
+  function saveResult(val) {
+    savedResult = val;
+    document.getElementById("field4-display").innerText = val;
+    setStatus(`💾 บันทึกค่า ${val} แล้ว — กด 📤 เพื่อส่ง ThingSpeak`, "#f5a623");
+  }
+
+  function clearAll() {
+    current = "0"; expr = ""; operator = null; prev = null; justCalc = false;
+    updateDisplay();
+  }
+
+  function toggleSign() {
+    current = String(parseFloat(current) * -1);
+    updateDisplay();
+  }
+
+  function percent() {
+    current = String(parseFloat(current) / 100);
+    updateDisplay();
+  }
+
+  function sendToThingSpeak() {
+    const key = document.getElementById("apikey").value.trim();
+    if (!key)           { setStatus("❌ กรุณาใส่ Write API Key", "#e74c3c"); return; }
+    if (savedResult === null) { setStatus("❌ ยังไม่มีผลลัพธ์ กรุณาคิดเลขก่อน", "#e74c3c"); return; }
+
+    setStatus("กำลังส่ง...", "#aaa");
+
+    fetch(`https://api.thingspeak.com/update?api_key=${key}&field4=${savedResult}`)
+      .then(r => r.text())
+      .then(res => {
+        const time = new Date().toLocaleTimeString('th-TH');
+        if (res === "0") {
+          setStatus("❌ ส่งไม่สำเร็จ (รอ 15 วิแล้วลองใหม่)", "#e74c3c");
+        } else {
+          setStatus(`✅ [${time}] ส่ง ${savedResult} ไป field4 สำเร็จ! Entry: ${res}`, "#73bf69");
+        }
+      })
+      .catch(e => setStatus("❌ Error: " + e, "#e74c3c"));
+  }
+
+  function setStatus(msg, color) {
+    const el = document.getElementById("send-status");
+    el.innerText = msg;
+    el.style.color = color;
+  }
+</script>
+</body>
+</html>
