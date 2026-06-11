@@ -81,13 +81,13 @@
 
   <!-- ผลลัพธ์ -->
   <div class="section">
-    <h3>📋 ผลลัพธ์ → Field 4</h3>
+    <h3>📋 ผลลัพธ์ → Field 7</h3>
     <div class="result-box">
       <div>
-        <div class="label">ค่าที่จะส่งไป field4</div>
-        <div class="value" id="field4-display">—</div>
+        <div class="label">ค่าที่จะส่งไป field7</div>
+        <div class="value" id="field7-display">—</div>
       </div>
-      <div style="color:#555; font-size:11px;">ThingSpeak<br>field4</div>
+      <div style="color:#555; font-size:11px;">ThingSpeak<br>field7</div>
     </div>
     <button class="btn-send" onclick="sendToThingSpeak()">📤 ส่งค่านี้ไป ThingSpeak</button>
     <div id="send-status"></div>
@@ -166,7 +166,7 @@
 
   function saveResult(val) {
     savedResult = val;
-    document.getElementById("field4-display").innerText = val;
+    document.getElementById("field7-display").innerText = val;
     setStatus(`💾 บันทึกค่า ${val} แล้ว — กด 📤 เพื่อส่ง ThingSpeak`, "#f5a623");
   }
 
@@ -199,7 +199,7 @@
         if (res === "0") {
           setStatus("❌ ส่งไม่สำเร็จ (รอ 15 วิแล้วลองใหม่)", "#e74c3c");
         } else {
-          setStatus(`✅ [${time}] ส่ง ${savedResult} ไป field4 สำเร็จ! Entry: ${res}`, "#73bf69");
+          setStatus(`✅ [${time}] ส่ง ${savedResult} ไป field7 สำเร็จ! Entry: ${res}`, "#73bf69");
         }
       })
       .catch(e => setStatus("❌ Error: " + e, "#e74c3c"));
