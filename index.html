@@ -192,7 +192,7 @@
 
     setStatus("กำลังส่ง...", "#aaa");
 
-    fetch(`https://api.thingspeak.com/update?api_key=${key}&field4=${savedResult}`)
+    fetch(`https://api.thingspeak.com/update?api_key=${key}&field7=${savedResult}`)
       .then(r => r.text())
       .then(res => {
         const time = new Date().toLocaleTimeString('th-TH');
